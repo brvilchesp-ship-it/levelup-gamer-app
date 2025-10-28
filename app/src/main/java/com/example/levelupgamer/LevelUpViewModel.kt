@@ -92,11 +92,82 @@ class LevelUpViewModel(app: Application): AndroidViewModel(app) {
 
 // Producto de ejemplo
 fun sampleProducts() = listOf(
-    Product("ps5","PlayStation 5",599_990,"Consolas","https://media.falabella.com/falabellaCL/144879483_01/w=1500,h=1500,fit=pad"),
-    Product("pc-rog","PC Gamer ASUS ROG Strix",980_000,"Computadores Gamers","https://media.solotodo.com/media/products/1376804_picture_1619193737.jpg"),
-    Product("hyperx","Auriculares Gamer HyperX Cloud II",36_990,"Accesorios","https://media.solotodo.com/media/products/1666477_picture_1668178725.jpg"),
-    Product("pc-pba","PC Gaming Asus Rog Strix PBA",5_699_990,"Computadores Gamers","https://www.xtremepc.com.mx/cdn/shop/files/f2d07544-3b3d-49d1-bd86-f2ec23b62c8e_800x.png?v=1732267809"),
-    Product("apexpro","Apex Pro TKL Gen3",300_790,"Accesorios","https://http2.mlstatic.com/D_NQ_NP_777006-MLA80570414748_112024-O.webp"),
-    Product("polera","Polera Gamer Personalizada 'Level-Up'",14_990,"Poleras Personalizadas","https://cdnx.jumpseller.com/estampados-bettoskys/image/29748856/resize/640/640?1669413482"),
-    Product("poleron","Polerón Gamer Personalizado 'Level-Up'",42_990,"Accesorios","https://http2.mlstatic.com/D_NQ_NP_746963-MLC53433072044_012023-O.webp"),
+    Product(
+        "ps5",
+        "PlayStation 5",
+        599_990,
+        "Consolas",
+        "https://media.falabella.com/falabellaCL/144879483_01/w=1500,h=1500,fit=pad"
+    ),
+    Product(
+        "pc-rog",
+        "PC Gamer ASUS ROG Strix",
+        980_000,
+        "Computadores Gamers",
+        "https://media.solotodo.com/media/products/1376804_picture_1619193737.jpg"
+    ),
+    Product(
+        "hyperx",
+        "Auriculares Gamer HyperX Cloud II",
+        36_990,
+        "Accesorios",
+        "https://media.solotodo.com/media/products/1666477_picture_1668178725.jpg"
+    ),
+    Product(
+        "pc-pba",
+        "PC Gaming Asus Rog Strix PBA",
+        5_699_990,
+        "Computadores Gamers",
+        "https://www.xtremepc.com.mx/cdn/shop/files/f2d07544-3b3d-49d1-bd86-f2ec23b62c8e_800x.png?v=1732267809"
+    ),
+    Product(
+        "apexpro",
+        "Apex Pro TKL Gen3",
+        300_790,
+        "Accesorios",
+        "https://http2.mlstatic.com/D_NQ_NP_777006-MLA80570414748_112024-O.webp"
+    ),
+    Product(
+        "polera",
+        "Polera Gamer Personalizada 'Level-Up'",
+        14_990,
+        "Poleras Personalizadas",
+        "https://cdnx.jumpseller.com/estampados-bettoskys/image/29748856/resize/640/640?1669413482"
+    ),
+    Product(
+        "poleron",
+        "Polerón Gamer Personalizado 'Level-Up'",
+        42_990,
+        "Polerones Gamers Personalizados",
+        "https://http2.mlstatic.com/D_NQ_NP_746963-MLC53433072044_012023-O.webp"
+    ),
+    Product(
+        "silla-gamer",
+        "Silla Gamer RGB Reclinable",
+        129_990,
+        "Sillas Gamers",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_825627-MLA95686798840_102025-F.webp"
+    ),
+    Product(
+        "mouse-g502",
+        "Mouse Gamer Logitech G502 HERO",
+        49_990,
+        "Mouse",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_650155-MLA95691271012_102025-F.webp"
+    ),
+    Product(
+        "mousepad-rgb",
+        "Mousepad Gamer RGB XL",
+        19_990,
+        "Mousepad",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_869138-MLA95634011680_102025-F.webp"
+    ),
+    Product(
+        "juego-mesa",
+        "Juego de Mesa Monopoly Gamer",
+        29_990,
+        "Juegos de Mesa",
+        "https://http2.mlstatic.com/D_NQ_NP_2X_981584-MLA95676703140_102025-F.webp"
+    )
 )
+

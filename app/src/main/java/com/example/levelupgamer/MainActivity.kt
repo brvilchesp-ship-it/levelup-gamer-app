@@ -1,14 +1,9 @@
-
 package com.example.levelupgamer
 
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,35 +20,39 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             LevelUpGamerTheme {
                 val vm: LevelUpViewModel = viewModel()
                 val nav = rememberNavController()
 
-                var onPhotoPicked: (Uri?) -> Unit by remember { mutableStateOf({}) }
-                val photoPicker = rememberLauncherForActivityResult(
-                    ActivityResultContracts.PickVisualMedia()
-                ) { uri -> onPhotoPicked(uri) }
-
                 Scaffold { _ ->
-                    NavHost(navController = nav, startDestination = Routes.Catalog) {
+                    NavHost(
+                        navController = nav,
+                        startDestination = Routes.Catalog
+                    ) {
+                        // 🛒 Catálogo principal
                         composable(Routes.Catalog) {
-                            CatalogScreen(vm, onGoPoints = { nav.navigate(Routes.Points) },
-                                onGoLogin = { nav.navigate(Routes.Login) })
+                            CatalogScreen(
+                                vm,
+                                onGoPoints = { nav.navigate(Routes.Points) },
+                                onGoLogin = { nav.navigate(Routes.Login) }
+                            )
                         }
+
+                        // ⭐ Pantalla de puntos
                         composable(Routes.Points) {
-                            PointsScreen(vm, onBack = { nav.popBackStack() })
+                            PointsScreen(
+                                vm,
+                                onBack = { nav.popBackStack() }
+                            )
                         }
+
+                        // 🔐 Pantalla de login / registro
                         composable(Routes.Login) {
                             LoginScreen(
                                 vm,
-                                onBack = { nav.popBackStack() },
-                                onPickPhoto = {
-                                    onPhotoPicked = it
-                                    photoPicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
+                                onBack = { nav.popBackStack() }
                             )
                         }
                     }
