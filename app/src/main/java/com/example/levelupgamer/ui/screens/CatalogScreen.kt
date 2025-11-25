@@ -14,24 +14,44 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.levelupgamer.LevelUpViewModel
+import com.example.levelupgamer.viewmodel.LevelUpViewModel
 import com.example.levelupgamer.R
 import com.example.levelupgamer.data.Product
 
 @Composable
-fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () -> Unit) {
+fun CatalogScreen(
+    vm: LevelUpViewModel,
+    userName: String,
+    hasDiscount: Boolean,
+    onGoPoints: () -> Unit,
+    onGoLogin: () -> Unit,
+    onGoExternalPosts: () -> Unit
+) {
     val ui by vm.ui.collectAsState()
     var showCart by remember { mutableStateOf(false) }
 
+    // Usuario desde ViewModel
+    val currentUser = ui.user
+    val isLoggedIn = currentUser != null
+
+    // Nombre del usuario
+    val displayName = currentUser?.name ?: userName
+
+    // 🔥 DESCUENTO SOLO SI EL USUARIO LOGUEADO ES DUOC
+    val descuentoActivo = currentUser?.isDuoc == true
+    val descuento = if (descuentoActivo) 0.8 else 1.0
+
     Box(Modifier.fillMaxSize()) {
 
-        // 📦 Contenido principal
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
-            // 🔝 Header
+
+            // -------------------------------------
+            //                HEADER
+            // -------------------------------------
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -39,13 +59,12 @@ fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () ->
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 🎮 Logo + texto
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Logo Level-Up Gamer",
                         modifier = Modifier
-                            .size(42.dp) // 🔽 más pequeño
+                            .size(42.dp)
                             .padding(end = 6.dp)
                     )
                     Text(
@@ -57,28 +76,38 @@ fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () ->
                     )
                 }
 
-                // 🔘 Botones: Ingresar y Carrito más pequeños
                 Row(verticalAlignment = Alignment.CenterVertically) {
+
+                    // 🔐 Ingresar / Cerrar sesión
                     Button(
-                        onClick = onGoLogin,
+                        onClick = {
+                            if (isLoggedIn) {
+                                vm.signOut()    // limpia prefs
+                            } else {
+                                onGoLogin()     // ir al login
+                            }
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
                         modifier = Modifier
                             .height(34.dp)
                             .padding(end = 6.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp)
                     ) {
-                        Text("Ingresar", color = MaterialTheme.colorScheme.onPrimary)
+                        Text(
+                            if (isLoggedIn) "Cerrar sesión" else "Ingresar",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
 
+                    // 🛒 Carrito
                     Button(
                         onClick = { showCart = !showCart },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        modifier = Modifier.height(34.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                        modifier = Modifier.height(34.dp)
                     ) {
                         Text(
                             "\uD83D\uDED2 ${ui.cart.sumOf { it.qty }}",
@@ -88,9 +117,32 @@ fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () ->
                 }
             }
 
-            // 🔸 Botón de puntos centrado
+            // -------------------------------------
+            //        BIENVENIDA SI ESTÁS LOGUEADO
+            // -------------------------------------
+            if (isLoggedIn) {
+                Text(
+                    text = "Bienvenido, $displayName 👋",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                if (descuentoActivo) {
+                    Text(
+                        text = "🎓 Tienes un 20% de descuento por correo DUOC UC",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+            }
+
+            // Botón puntos
             Box(
-                modifier = Modifier
+                Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -102,25 +154,29 @@ fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () ->
                     ),
                     modifier = Modifier
                         .width(120.dp)
-                        .height(36.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                        .height(36.dp)
                 ) {
                     Text("Puntos", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
-            // 🧩 Catálogo de productos
+            // -------------------------------------
+            //                CATÁLOGO
+            // -------------------------------------
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(160.dp),
                 contentPadding = PaddingValues(6.dp)
             ) {
                 items(ui.products) { p ->
-                    ProductCard(p) { vm.addToCart(p) }
+                    val precioFinal = (p.price * descuento).toInt()
+                    ProductCard(p, precioFinal) { vm.addToCart(p) }
                 }
             }
         }
 
-        // 🛒 Carrito flotante
+        // -------------------------------------
+        //              CARRITO
+        // -------------------------------------
         AnimatedVisibility(showCart) {
             Surface(
                 modifier = Modifier
@@ -131,14 +187,15 @@ fun CatalogScreen(vm: LevelUpViewModel, onGoPoints: () -> Unit, onGoLogin: () ->
                 tonalElevation = 12.dp,
                 shadowElevation = 8.dp
             ) {
-                CartSheetCustom(vm, onClose = { showCart = false })
+                CartSheetCustom(vm, descuentoActivo, onClose = { showCart = false })
             }
         }
     }
 }
 
+// -----------------------------------------
 @Composable
-private fun ProductCard(p: Product, onAdd: () -> Unit) {
+private fun ProductCard(p: Product, precioFinal: Int, onAdd: () -> Unit) {
     Card(
         Modifier
             .padding(6.dp)
@@ -167,8 +224,14 @@ private fun ProductCard(p: Product, onAdd: () -> Unit) {
                 )
             )
             Text(
-                "$${"%,d".format(p.price)}",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                if (precioFinal < p.price)
+                    "Antes: $${"%,d".format(p.price)}  Ahora: $${"%,d".format(precioFinal)}"
+                else
+                    "$${"%,d".format(p.price)}",
+                color = if (precioFinal < p.price)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
             )
             Spacer(Modifier.height(6.dp))
             Button(
@@ -184,16 +247,18 @@ private fun ProductCard(p: Product, onAdd: () -> Unit) {
     }
 }
 
+// -----------------------------------------
 @Composable
-fun CartSheetCustom(vm: LevelUpViewModel, onClose: () -> Unit) {
+fun CartSheetCustom(vm: LevelUpViewModel, hasDiscount: Boolean, onClose: () -> Unit) {
     val ui by vm.ui.collectAsState()
+    val descuento = if (hasDiscount) 0.8 else 1.0
 
     Column(
         Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // 🔝 Título del carrito
+
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,6 +282,7 @@ fun CartSheetCustom(vm: LevelUpViewModel, onClose: () -> Unit) {
             Text("Tu carrito está vacío", color = MaterialTheme.colorScheme.onSurface)
         } else {
             ui.cart.forEach { item ->
+                val precioFinal = (item.product.price * descuento).toInt()
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -224,19 +290,35 @@ fun CartSheetCustom(vm: LevelUpViewModel, onClose: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "${item.product.name} x${item.qty}",
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Button(
-                        onClick = { vm.removeFromCart(item.product.id) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                        modifier = Modifier.height(30.dp)
-                    ) {
-                        Text("Eliminar", color = MaterialTheme.colorScheme.onPrimary)
+                    Column {
+                        Text(
+                            "${item.product.name} x${item.qty}",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (hasDiscount)
+                            Text(
+                                "Descuento aplicado",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "$${"%,d".format(precioFinal * item.qty)}",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = { vm.removeFromCart(item.product.id) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Text("Eliminar", color = MaterialTheme.colorScheme.onPrimary)
+                        }
                     }
                 }
             }
@@ -245,9 +327,12 @@ fun CartSheetCustom(vm: LevelUpViewModel, onClose: () -> Unit) {
             Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
             Spacer(Modifier.height(8.dp))
 
-            val total = ui.cart.sumOf { it.product.price * it.qty }
+            val total = (ui.cart.sumOf { it.product.price * it.qty } * descuento).toInt()
             Text(
-                "Total: $${"%,d".format(total)}",
+                if (hasDiscount)
+                    "Total con descuento: $${"%,d".format(total)}"
+                else
+                    "Total: $${"%,d".format(total)}",
                 style = MaterialTheme.typography.titleMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
@@ -255,10 +340,8 @@ fun CartSheetCustom(vm: LevelUpViewModel, onClose: () -> Unit) {
             )
 
             Spacer(Modifier.height(12.dp))
-
-            // 🔘 Botón "Pagar" sin funcionalidad
             Button(
-                onClick = { /* sin acción */ },
+                onClick = { },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),

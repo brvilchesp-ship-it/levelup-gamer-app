@@ -7,7 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,11 +20,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.levelupgamer.ui.nav.Routes
+import com.example.levelupgamer.remote.ProductRetrofitInstance   // 👈🔥 IMPORT IMPORTANTE
 import com.example.levelupgamer.ui.screens.CatalogScreen
 import com.example.levelupgamer.ui.screens.LoginScreen
 import com.example.levelupgamer.ui.screens.PointsScreen
-import com.example.levelupgamer.ui.theme.*
+import com.example.levelupgamer.ui.screens.ExternalPostScreen
+import com.example.levelupgamer.ui.theme.BackgroundDark
+import com.example.levelupgamer.ui.theme.LevelUpGamerTheme
+import com.example.levelupgamer.ui.theme.RedGamer
+import com.example.levelupgamer.viewmodel.LevelUpViewModel
+import com.example.levelupgamer.viewmodel.ExternalPostViewModel
+import com.example.levelupgamer.viewmodel.ExternalPostViewModelFactory
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -33,37 +40,75 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LevelUpGamerTheme {
+
                 val vm: LevelUpViewModel = viewModel()
                 val nav = rememberNavController()
+
+                // 🔥 ViewModel para la pantalla de posts externos
+                val externalVm: ExternalPostViewModel = viewModel(
+                    factory = ExternalPostViewModelFactory()
+                )
+
+
                 var showSplash by remember { mutableStateOf(true) }
+                var userName by remember { mutableStateOf("") }
+                var hasDiscount by remember { mutableStateOf(false) }
 
                 if (showSplash) {
-                    SplashScreen {
-                        showSplash = false
-                    }
+                    SplashScreen { showSplash = false }
                 } else {
-                    Scaffold { _ ->
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = BackgroundDark
+                    ) { inner ->
+
                         NavHost(
                             navController = nav,
-                            startDestination = Routes.Catalog
+                            startDestination = "catalog",
+                            modifier = Modifier.padding(inner)
                         ) {
-                            // 🛒 Catálogo principal
-                            composable(Routes.Catalog) {
+
+                            // 📌 Catálogo
+                            composable("catalog") {
                                 CatalogScreen(
-                                    vm,
-                                    onGoPoints = { nav.navigate(Routes.Points) },
-                                    onGoLogin = { nav.navigate(Routes.Login) }
+                                    vm = vm,
+                                    userName = userName,
+                                    hasDiscount = hasDiscount,
+                                    onGoPoints = { nav.navigate("points") },
+                                    onGoLogin = { nav.navigate("login") },
+                                    onGoExternalPosts = { nav.navigate("external_posts") }
                                 )
                             }
 
-                            // ⭐ Pantalla de puntos
-                            composable(Routes.Points) {
-                                PointsScreen(vm, onBack = { nav.popBackStack() })
+                            // 📌 Puntos
+                            composable("points") {
+                                PointsScreen(
+                                    vm = vm,
+                                    onBack = { nav.popBackStack() }
+                                )
                             }
 
-                            // 🔐 Pantalla de login / registro
-                            composable(Routes.Login) {
-                                LoginScreen(vm, onBack = { nav.popBackStack() })
+                            // 📌 Login
+                            composable("login") {
+                                LoginScreen(
+                                    vm = vm,
+                                    onBack = { nav.popBackStack() },
+                                    onSuccessLogin = { name, duoc ->
+                                        userName = name
+                                        hasDiscount = duoc
+                                        nav.navigate("catalog") {
+                                            popUpTo("catalog") { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
+
+                            // 📌 🔥 Nueva pantalla: Posts externos (API)
+                            composable("external_posts") {
+                                ExternalPostScreen(
+                                    viewModel = externalVm,
+                                    onBack = { nav.popBackStack() }
+                                )
                             }
                         }
                     }
@@ -76,34 +121,26 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SplashScreen(onFinish: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(3000) // ⏳ espera 3 segundos
+        delay(2000)
         onFinish()
     }
-
-    // 🎨 Fondo igual al catálogo (negro gamer)
     Box(
-        modifier = Modifier
+        Modifier
             .fillMaxSize()
-            .background(BackgroundDark), // 👈 tu color del tema
+            .background(BackgroundDark),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // 🎮 Logo principal
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo LevelUpGamer",
-                modifier = Modifier
-                    .size(200.dp)
-                    .padding(bottom = 24.dp)
+                contentDescription = null,
+                modifier = Modifier.size(200.dp)
             )
-
-            // 💚 Nombre principal
             Text(
                 text = "LEVEL-UP GAMER",
-                fontSize = 34.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = RedGamer, // 💚 color neón definido en tu tema
-                letterSpacing = 2.sp
+                color = RedGamer,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }

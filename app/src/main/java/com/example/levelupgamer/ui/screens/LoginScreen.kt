@@ -1,156 +1,202 @@
 package com.example.levelupgamer.ui.screens
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.levelupgamer.LevelUpViewModel
-import com.example.levelupgamer.R
-import com.example.levelupgamer.domain.Validators
+import androidx.compose.ui.unit.sp
+import com.example.levelupgamer.viewmodel.LevelUpViewModel
+import com.example.levelupgamer.ui.theme.*
 
 @Composable
 fun LoginScreen(
     vm: LevelUpViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSuccessLogin: (String, Boolean) -> Unit
 ) {
-    var name by remember { mutableStateOf(TextFieldValue()) }
-    var email by remember { mutableStateOf(TextFieldValue()) }
-    var age by remember { mutableStateOf(TextFieldValue()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var success by remember { mutableStateOf(false) }
+    var isRegister by remember { mutableStateOf(false) }
 
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0A0A))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .animateContentSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+        Text(
+            if (isRegister) "Registro" else "Inicio de Sesión",
+            fontSize = 26.sp,
+            color = BlueNeon,
+            modifier = Modifier.padding(bottom = 20.dp)
+        )
 
-            // 🎮 Logo
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo Level-Up Gamer",
-                modifier = Modifier
-                    .size(100.dp)
-                    .padding(bottom = 16.dp)
-            )
-
-            // 🧾 Título
-            Text(
-                "Crear cuenta / Ingresar",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                ),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            // 👤 Campo nombre
+        // ---------- REGISTRO ----------
+        if (isRegister) {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nombre") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.9f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = GreenNeon,
+                    unfocusedIndicatorColor = Color.Gray,
+                    cursorColor = GreenNeon
                 )
             )
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(Modifier.height(8.dp))
-
-            // 📧 Campo correo
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Correo electrónico") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.9f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // 🔢 Campo edad
             OutlinedTextField(
                 value = age,
-                onValueChange = { age = it },
-                label = { Text("Edad (18+)") },
+                onValueChange = { age = it.filter { c -> c.isDigit() } },
+                label = { Text("Edad") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.9f),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    cursorColor = MaterialTheme.colorScheme.primary,
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = GreenNeon,
+                    unfocusedIndicatorColor = Color.Gray,
+                    cursorColor = GreenNeon
                 )
             )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
 
-            Spacer(Modifier.height(16.dp))
+        // ---------- CAMPOS COMUNES ----------
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Correo electrónico") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = BlueNeon,
+                unfocusedIndicatorColor = Color.Gray,
+                cursorColor = BlueNeon
+            )
+        )
+        Spacer(modifier = Modifier.height(10.dp))
 
-            // ⚠️ Mensaje de error
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
-            }
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Contraseña") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = RedGamer,
+                unfocusedIndicatorColor = Color.Gray,
+                cursorColor = RedGamer
+            )
+        )
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-            // ✅ Botón continuar
-            Button(
-                onClick = {
-                    val a = age.text.toIntOrNull()
+        // ---------- BOTÓN PRINCIPAL ----------
+        Button(
+            onClick = {
+                message = ""
+                success = false
+
+                if (isRegister) {
+                    // ------- LÓGICA DE REGISTRO -------
+                    val ageInt = age.toIntOrNull() ?: 0
                     when {
-                        !Validators.nameOk(name.text) -> error = "Nombre muy corto"
-                        !Validators.emailOk(email.text) -> error = "Correo inválido"
-                        !Validators.ageOk(a) -> error = "Debes ser mayor de 18"
+                        name.isBlank() || email.isBlank() || password.isBlank() || age.isBlank() ->
+                            message = "⚠Debes llenar todos los campos."
+                        name.length < 4 ->
+                            message = "El nombre debe tener más de 3 caracteres."
+                        !email.contains("@") ->
+                            message = "Ingresa un correo válido."
+                        password.length < 4 ->
+                            message = "La contraseña debe tener al menos 4 caracteres."
+                        ageInt < 18 ->
+                            message = "Debes ser mayor de 18 años para registrarte."
                         else -> {
-                            vm.signIn(email.text.trim(), name.text.trim())
-                            onBack()
+                            vm.registerUser(
+                                name = name,
+                                email = email
+                            ) { ok, msg ->
+                                success = ok
+                                message = msg
+                                if (ok) {
+                                    // volvemos a login
+                                    isRegister = false
+                                    password = ""
+                                }
+                            }
                         }
                     }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(50.dp)
-            ) {
-                Text("Continuar", color = MaterialTheme.colorScheme.onPrimary)
-            }
+                } else {
+                    // ------- LÓGICA DE LOGIN (SIN LISTA LOCAL) -------
+                    when {
+                        email.isBlank() || password.isBlank() ->
+                            message = "⚠️ Completa todos los campos."
+                        !email.contains("@") ->
+                            message = "❌ Ingresa un correo válido."
+                        else -> {
+                            val duoc = email.endsWith("@duocuc.cl", ignoreCase = true)
+                            val loginName = email.substringBefore("@")
 
-            Spacer(Modifier.height(8.dp))
+                            // guardamos usuario en prefs (simula login)
+                            vm.signIn(email, loginName)
 
-            // 🔙 Botón volver
-            TextButton(onClick = onBack) {
-                Text("Volver", color = MaterialTheme.colorScheme.secondary)
-            }
+                            success = true
+                            message = if (duoc)
+                                "Bienvenido $loginName! Tienes 20% de descuento 🎉"
+                            else
+                                "Bienvenido $loginName!"
+
+                            // avisamos al MainActivity
+                            onSuccessLogin(loginName, duoc)
+                        }
+                    }
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = GreenNeon)
+        ) {
+            Text(
+                if (isRegister) "Registrar" else "Ingresar",
+                color = Color.Black,
+                fontSize = 16.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            message,
+            color = if (success) GreenNeon else Color.Red,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(25.dp))
+
+        TextButton(onClick = { isRegister = !isRegister }) {
+            Text(
+                if (isRegister)
+                    "¿Ya tienes cuenta? Inicia sesión aquí"
+                else
+                    "¿No tienes cuenta? Regístrate aquí",
+                color = BlueNeon
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+        TextButton(onClick = { onBack() }) {
+            Text("⬅ Volver", color = RedGamer)
         }
     }
 }

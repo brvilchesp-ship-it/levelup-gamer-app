@@ -18,7 +18,7 @@ import com.example.levelupgamer.R
 @Composable
 fun SplashScreen(onFinish: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(3000) // ⏳ espera 3 segundos antes de continuar
+        delay(3000)
         onFinish()
     }
 
@@ -41,7 +41,7 @@ fun SplashScreen(onFinish: () -> Unit) {
                 text = "LevelUpGamer",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF39FF14), // verde neón
+                color = Color(0xFF39FF14),
                 textAlign = TextAlign.Center
             )
         }
