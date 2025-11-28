@@ -8,9 +8,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.levelupgamer.data.*
 import com.example.levelupgamer.remote.UserDto
-import com.example.levelupgamer.repository.ReviewRepository
 import com.example.levelupgamer.repository.UserRepository
 import com.example.levelupgamer.repository.ProductRepository
+import com.example.levelupgamer.repository.CartRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -19,21 +19,21 @@ data class UiState(
     val user: User? = null,
     val products: List<Product> = emptyList(),
     val cart: List<CartItem> = emptyList(),
-    val reviews: Map<String, List<Review>> = emptyMap(),
     val message: String? = null
 )
 
 class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
+
     private val prefs = Prefs(app)
     private val userRepo = UserRepository()
-    private val reviewRepo = ReviewRepository()
-    private val productRepo = ProductRepository()   // repo productos
+    private val productRepo = ProductRepository()
+    private val cartRepo = CartRepository()
 
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui.asStateFlow()
 
     init {
-        // Usuario guardado
+        // Usuario guardado en SharedPreferences
         viewModelScope.launch {
             prefs.userFlow.collect { u ->
                 _ui.update { it.copy(user = u) }
@@ -44,7 +44,7 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
         loadProducts()
     }
 
-    // ============= USUARIOS =============
+    // ================= USUARIOS =================
     fun registerUser(
         name: String,
         email: String,
@@ -70,8 +70,8 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
             )
 
             prefs.saveUser(localUser)
-
             onResult(true, "Usuario registrado correctamente 🎮")
+
         } catch (e: Exception) {
             e.printStackTrace()
             onResult(false, "Error al registrar: ${e.message}")
@@ -86,14 +86,13 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signOut() = viewModelScope.launch { prefs.signOut() }
 
-    // ============= PRODUCTOS =============
+    // ================= PRODUCTOS =================
     fun loadProducts() = viewModelScope.launch {
         try {
             val list = productRepo.getProducts()
             _ui.update { it.copy(products = list, message = null) }
         } catch (e: Exception) {
             e.printStackTrace()
-            // Si falla, mostramos mensaje y podemos usar de ejemplo
             _ui.update {
                 it.copy(
                     products = emptyList(),
@@ -103,14 +102,11 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // 🔥 NUEVO: sembrar productos de ejemplo en el backend
     fun seedProducts() = viewModelScope.launch {
         try {
-            // Crea cada producto en el backend
             for (p in sampleProducts()) {
                 productRepo.createProduct(p)
             }
-            // Luego recarga la lista
             loadProducts()
             _ui.update { it.copy(message = "Productos demo creados en el servidor") }
         } catch (e: Exception) {
@@ -119,72 +115,75 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ============= CARRITO =============
+    // ================= CARRITO =================
     fun addToCart(p: Product) = viewModelScope.launch {
         vibrate()
         val list = _ui.value.cart.toMutableList()
         val idx = list.indexOfFirst { it.product.id == p.id }
-        if (idx >= 0) list[idx] = list[idx].copy(qty = list[idx].qty + 1)
-        else list.add(CartItem(p, 1))
+        if (idx >= 0) {
+            list[idx] = list[idx].copy(qty = list[idx].qty + 1)
+        } else {
+            list.add(CartItem(p, 1))
+        }
         _ui.update { it.copy(cart = list) }
     }
 
     fun removeFromCart(id: String) {
-        _ui.update { it.copy(cart = it.cart.filterNot { it.product.id == id }) }
+        _ui.update {
+            it.copy(cart = it.cart.filterNot { ci -> ci.product.id == id })
+        }
     }
 
     fun changeQty(id: String, delta: Int) {
         _ui.update {
             it.copy(
                 cart = it.cart.map { ci ->
-                    if (ci.product.id == id) ci.copy(qty = max(1, ci.qty + delta)) else ci
+                    if (ci.product.id == id)
+                        ci.copy(qty = max(1, ci.qty + delta))
+                    else ci
                 }
             )
         }
     }
 
+    // 🔥 Pago conectado al backend /api/cart/checkout
     fun pay() = viewModelScope.launch {
-        val subtotal = _ui.value.cart.sumOf { it.product.price * it.qty }
-        val discount = if (_ui.value.user?.isDuoc == true) (subtotal * 0.2).toInt() else 0
-        val total = subtotal - discount
-        val pts = (total / 100).toInt()
+        val currentCart = _ui.value.cart
+        val currentUser = _ui.value.user
 
-        _ui.value.user?.let { u ->
-            prefs.saveUser(u.copy(points = u.points + pts))
+        if (currentCart.isEmpty()) {
+            _ui.update { it.copy(message = "Tu carrito está vacío") }
+            return@launch
         }
-        _ui.update { it.copy(cart = emptyList(), message = "Pago exitoso (+$pts pts)") }
-    }
 
-    // ============= REVIEWS =============
-    fun postReview(productId: String, stars: Int, text: String) {
-        val email = _ui.value.user?.email ?: return
+        if (currentUser == null) {
+            _ui.update { it.copy(message = "Debes iniciar sesión para pagar") }
+            return@launch
+        }
 
-        viewModelScope.launch {
-            try {
-                val review = Review(
-                    productId = productId,
-                    authorEmail = email,
-                    stars = stars,
-                    text = text
+        try {
+            val resp = cartRepo.checkout(currentCart)
+
+            val updatedUser = currentUser.copy(points = resp.newPointsBalance)
+            prefs.saveUser(updatedUser)
+
+            _ui.update {
+                it.copy(
+                    user = updatedUser,
+                    cart = emptyList(),
+                    message = "Pago exitoso 🎉 Total $${"%,d".format(resp.total)} (+${resp.earnedPoints} pts)"
                 )
+            }
 
-                val saved = reviewRepo.createReview(review)
-
-                val map = _ui.value.reviews.toMutableMap()
-                val list = (map[productId] ?: emptyList()).toMutableList()
-                val idx = list.indexOfFirst { it.authorEmail == email }
-
-                if (idx >= 0) list[idx] = saved else list.add(saved)
-                map[productId] = list
-
-                _ui.update { it.copy(reviews = map) }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            _ui.update {
+                it.copy(message = "Error al procesar el pago: ${e.message}")
             }
         }
     }
 
-    // ============= UTILIDADES =============
+    // ================= UTILIDADES =================
     private fun vibrate() {
         getApplication<Application>().getSystemService<Vibrator>()?.let { vib ->
             vib.vibrate(
@@ -197,7 +196,7 @@ class LevelUpViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-// Productos demo (los mismos que usabas antes)
+// Productos demo
 fun sampleProducts() = listOf(
     Product(
         "ps5",
@@ -240,40 +239,5 @@ fun sampleProducts() = listOf(
         14_990,
         "Poleras Personalizadas",
         "https://cdnx.jumpseller.com/estampados-bettoskys/image/29748856/resize/640/640?1669413482"
-    ),
-    Product(
-        "poleron",
-        "Polerón Gamer Personalizado 'Level-Up'",
-        42_990,
-        "Polerones Gamers Personalizados",
-        "https://http2.mlstatic.com/D_NQ_NP_746963-MLC53433072044_012023-O.webp"
-    ),
-    Product(
-        "silla-gamer",
-        "Silla Gamer RGB Reclinable",
-        129_990,
-        "Sillas Gamers",
-        "https://http2.mlstatic.com/D_NQ_NP_2X_825627-MLA95686798840_102025-F.webp"
-    ),
-    Product(
-        "mouse-g502",
-        "Mouse Gamer Logitech G502 HERO",
-        49_990,
-        "Mouse",
-        "https://http2.mlstatic.com/D_NQ_NP_2X_650155-MLA95691271012_102025-F.webp"
-    ),
-    Product(
-        "mousepad-rgb",
-        "Mousepad Gamer RGB XL",
-        19_990,
-        "Mousepad",
-        "https://http2.mlstatic.com/D_NQ_NP_2X_869138-MLA95634011680_102025-F.webp"
-    ),
-    Product(
-        "juego-mesa",
-        "Juego de Mesa Monopoly Gamer",
-        29_990,
-        "Juegos de Mesa",
-        "https://http2.mlstatic.com/D_NQ_NP_2X_981584-MLA95676703140_102025-F.webp"
     )
 )

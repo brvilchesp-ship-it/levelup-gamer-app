@@ -37,8 +37,8 @@ fun CatalogScreen(
     // Nombre del usuario
     val displayName = currentUser?.name ?: userName
 
-    // 🔥 DESCUENTO SOLO SI EL USUARIO LOGUEADO ES DUOC
-    val descuentoActivo = currentUser?.isDuoc == true
+    // DESCUENTO SOLO SI EL USUARIO LOGUEADO ES DUOC (o hasDiscount)
+    val descuentoActivo = currentUser?.isDuoc == true || hasDiscount
     val descuento = if (descuentoActivo) 0.8 else 1.0
 
     Box(Modifier.fillMaxSize()) {
@@ -49,9 +49,7 @@ fun CatalogScreen(
                 .padding(12.dp)
         ) {
 
-            // -------------------------------------
-            //                HEADER
-            // -------------------------------------
+            // HEADER
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -78,13 +76,13 @@ fun CatalogScreen(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
 
-                    // 🔐 Ingresar / Cerrar sesión
+                    // Ingresar / Cerrar sesión
                     Button(
                         onClick = {
                             if (isLoggedIn) {
-                                vm.signOut()    // limpia prefs
+                                vm.signOut()
                             } else {
-                                onGoLogin()     // ir al login
+                                onGoLogin()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -101,7 +99,7 @@ fun CatalogScreen(
                         )
                     }
 
-                    // 🛒 Carrito
+                    // Carrito
                     Button(
                         onClick = { showCart = !showCart },
                         colors = ButtonDefaults.buttonColors(
@@ -117,9 +115,7 @@ fun CatalogScreen(
                 }
             }
 
-            // -------------------------------------
-            //        BIENVENIDA SI ESTÁS LOGUEADO
-            // -------------------------------------
+            // BIENVENIDA
             if (isLoggedIn) {
                 Text(
                     text = "Bienvenido, $displayName 👋",
@@ -160,9 +156,17 @@ fun CatalogScreen(
                 }
             }
 
-            // -------------------------------------
-            //                CATÁLOGO
-            // -------------------------------------
+            // Mensaje de estado (solo si quieres mostrar errores generales)
+            ui.message?.let { msg ->
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            // CATÁLOGO: lo que venga de http://localhost:9090/api/products
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(160.dp),
                 contentPadding = PaddingValues(6.dp)
@@ -174,9 +178,7 @@ fun CatalogScreen(
             }
         }
 
-        // -------------------------------------
-        //              CARRITO
-        // -------------------------------------
+        // CARRITO
         AnimatedVisibility(showCart) {
             Surface(
                 modifier = Modifier
@@ -193,7 +195,6 @@ fun CatalogScreen(
     }
 }
 
-// -----------------------------------------
 @Composable
 private fun ProductCard(p: Product, precioFinal: Int, onAdd: () -> Unit) {
     Card(
@@ -247,7 +248,6 @@ private fun ProductCard(p: Product, precioFinal: Int, onAdd: () -> Unit) {
     }
 }
 
-// -----------------------------------------
 @Composable
 fun CartSheetCustom(vm: LevelUpViewModel, hasDiscount: Boolean, onClose: () -> Unit) {
     val ui by vm.ui.collectAsState()
@@ -341,7 +341,7 @@ fun CartSheetCustom(vm: LevelUpViewModel, hasDiscount: Boolean, onClose: () -> U
 
             Spacer(Modifier.height(12.dp))
             Button(
-                onClick = { },
+                onClick = { /* vm.pay() si quieres */ },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
